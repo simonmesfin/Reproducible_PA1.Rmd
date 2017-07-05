@@ -1,0 +1,85 @@
+Reproducible Data Analysis PA 1.
+Loading and preprocessing the data
+
+Show any code that is needed to load the data (i.e. read.csv())
+Process/transform the data (if necessary) into a format suitable for your analysis
+```{r}
+setwd("C:/Users/Simon/Desktop/Reproducible Research")
+activity  <- read.csv("./activity.csv")
+```
+
+1. What is mean total number of steps taken per day? For this part of the assignment, you can ignore the missing values in the dataset. Calculate the total number of steps taken per day. Make a histogram of the total number of steps taken each day
+```{r}
+Daily_Steps <- aggregate(steps ~ date, activity, sum)
+hist(Daily_Steps$steps, main = "Total Number of Steps Taken Each Day", xlab = "Number of Steps per Day",
+     ylab = "Number of Days", border = "black", col = terrain.colors(6), las = 1, font.main = 4)
+```
+
+Calculate and report the mean and median of the total number of steps taken per day
+```{r}
+mean(Daily_Steps$steps)
+median(Daily_Steps$steps)
+```
+
+What is the average daily activity pattern?
+
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r}
+Interval_Steps <- aggregate(steps ~ interval, activity, mean)
+plot(Interval_Steps$interval, Interval_Steps$steps, type="l", las = 1, col = "royalblue", 
+     xlab = "Interval", ylab = "Average Number of Steps", main = "Average Daily Activity Pattern", 
+     font.main = 4)
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+Interval_Steps[which.max(Interval_Steps$steps), ]
+```
+
+Imputing missing values
+
+1. Calculate and report the total number of missing values in the dataset (the total number of rows with NAs)
+```{r}
+sum(is.na(activity))
+mean(is.na(activity))
+```
+
+2. Devise a strategy for filling in all of the missing values in the dataset. 
+```{r}
+incomplete <- sum(!complete.cases(activity))
+activity_Impute <- transform(activity, steps = ifelse(is.na(activity$steps),  Interval_Steps$steps[match(activity$interval, Interval_Steps$interval)], activity$steps))
+activity_Impute[as.character(activity_Impute$date) == "2012-10-01", 1] <- 0
+```
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+Daily_Steps_Int <- aggregate(steps ~ date, activity_Impute, sum)
+```
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+```{r}
+hist(Daily_Steps_Int$steps, main = paste("Total Number of Steps per Day"), col = "bisque3", font.main = 4, xlab="Number of Steps")
+hist(Daily_Steps$steps, main = paste("Total Number of Steps per Day"), col = "cornsilk2", xlab = "Number of Steps", 
+     add = TRUE, font.main = 4)
+legend("topright", c("Imputed", "Non-imputed"), col = c("bisque3", "cornsilk2"), lwd = 8)
+
+mean(Daily_Steps_Int$steps) - mean(Daily_Steps$steps)
+median(Daily_Steps_Int$steps) - median(Daily_Steps$steps)
+```
+
+Are there differences in activity patterns between weekdays and weekends?
+1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+```{r}
+weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+activity_Impute$dow = as.factor(ifelse(is.element(weekdays(as.Date(activity_Impute$date)), 
+                                                  weekdays), "Weekday", "Weekend"))
+
+Interval2_Steps <- aggregate(steps ~ interval + dow, activity_Impute, mean)
+```
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+```{r}
+library(lattice)
+xyplot(Interval2_Steps$steps ~ Interval2_Steps$interval | Interval2_Steps$dow, main = "Total Number of Steps within Intervals", xlab = "Daily Intervals", ylab = "Total Number of Steps", font.main = 4, layout = c(2, 1), type = "l", col = "royalblue2")
+```
+
